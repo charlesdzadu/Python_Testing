@@ -51,6 +51,7 @@ def test_book_page_valid_route(client):
 def test_book_invalid_route_redirects(client):
     response = client.get("/book/Nonexistent/NoClub", follow_redirects=True)
     assert response.status_code == 200
+    assert b"GUDLFT Registration" in response.data
 
 
 def test_purchase_invalid_competition_or_club(client):
@@ -152,6 +153,12 @@ def test_successful_booking_deducts_points_and_places(client):
 
 def test_public_scoreboard_accessible(client):
     response = client.get("/clubs")
+    assert response.status_code == 200
+    assert b"Club Points" in response.data
+
+
+def test_login_link_to_scoreboard_present(client):
+    response = client.get("/")
     assert response.status_code == 200
     assert b"Club Points" in response.data
 

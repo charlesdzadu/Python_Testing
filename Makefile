@@ -1,4 +1,4 @@
-.PHONY: start install clean test coverage perf help
+.PHONY: start install clean test coverage perf perf-ui help
 
 # Start the Flask application
 start:
@@ -20,15 +20,22 @@ clean:
 
 test:
 	@echo "Running unit and integration tests..."
+	@mkdir -p reports
 	@pytest -q
 
 coverage:
 	@echo "Running tests with coverage (target >= 80%)..."
-	@pytest --cov=server --cov-report=term-missing --cov-fail-under=80 -q
+	@mkdir -p reports
+	@pytest --cov=server --cov-report=term-missing --cov-report=html:reports/htmlcov --junitxml=reports/junit.xml --cov-fail-under=80 -q
 
 perf:
 	@echo "Starting Locust performance test (default 6 users)..."
-	@locust -f tests/perf/locustfile.py --headless -u 6 -r 2 -t 1m --host=http://localhost:5001
+	@mkdir -p reports
+	@locust -f tests/perf/locustfile.py --headless -u 6 -r 2 -t 1m --host=http://localhost:5001 --csv=reports/locust --only-summary
+
+perf-ui:
+	@echo "Starting Locust Web UI (visit http://localhost:8089)..."
+	@locust -f tests/perf/locustfile.py --host=http://localhost:5001
 
 # Help command
 help:
