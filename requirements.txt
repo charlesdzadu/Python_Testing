@@ -4,3 +4,6 @@ itsdangerous>=2.0.0
 Jinja2>=3.0.0
 MarkupSafe>=2.0.0
 Werkzeug>=3.0.0
+pytest>=8.0.0
+pytest-cov>=5.0.0
+locust>=2.29.0
