@@ -21,7 +21,6 @@ class GudlftUser(HttpUser):
 
     @task(1)
     def login_and_view_summary(self):
-        # Use a known email from seed data
         with self.client.post(
             "/showSummary",
             data={"email": "john@simplylift.co"},

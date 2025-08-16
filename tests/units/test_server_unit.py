@@ -33,7 +33,6 @@ def test_show_summary_valid_email(client):
 
 def test_book_page_valid_route(client):
     club = server.clubs[0]["name"]
-    # Use the future competition (Summer Championship)
     competition = server.competitions[2]["name"] if len(server.competitions) > 2 else server.competitions[0]["name"]
     response = client.get(f"/book/{competition}/{club}")
     assert response.status_code == 200
@@ -58,7 +57,6 @@ def test_purchase_invalid_competition_or_club(client):
 
 def test_purchase_invalid_places_value(client):
     club = server.clubs[0]["name"]
-    # Use the future competition
     competition = "Summer Championship"
     response = client.post("/purchasePlaces", data={
         "competition": competition,
@@ -70,7 +68,6 @@ def test_purchase_invalid_places_value(client):
 
 def test_purchase_non_positive_places(client):
     club = server.clubs[0]["name"]
-    # Use the future competition
     competition = "Summer Championship"
     response = client.post("/purchasePlaces", data={
         "competition": competition,
@@ -82,7 +79,6 @@ def test_purchase_non_positive_places(client):
 
 def test_purchase_more_than_twelve_rejected(client):
     club = server.clubs[0]["name"]
-    # Use the future competition
     competition = "Summer Championship"
     response = client.post("/purchasePlaces", data={
         "competition": competition,
@@ -94,7 +90,6 @@ def test_purchase_more_than_twelve_rejected(client):
 
 def test_purchase_more_than_available_rejected(client, monkeypatch):
     club = server.clubs[0]["name"]
-    # Use the future competition
     competition = "Summer Championship"
 
     # Force low availability for deterministic behavior
@@ -113,7 +108,6 @@ def test_purchase_more_than_available_rejected(client, monkeypatch):
 def test_purchase_more_than_points_rejected(client):
     # Pick a club with very few points
     low_points_club = next(c for c in server.clubs if int(c["points"]) <= 4)
-    # Use the future competition
     competition = "Summer Championship"
     response = client.post("/purchasePlaces", data={
         "competition": competition,
@@ -126,7 +120,6 @@ def test_purchase_more_than_points_rejected(client):
 def test_successful_booking_deducts_points_and_places(client):
     # Work on a fresh competition and club with known values
     club = server.clubs[0]
-    # Use the future competition
     competition = next((c for c in server.competitions if c["name"] == "Summer Championship"), server.competitions[0])
 
     # Save original values

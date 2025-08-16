@@ -18,8 +18,8 @@ def test_full_login_book_logout_flow(client):
     assert response.status_code == 200
     assert b"Welcome" in response.data
 
-    # Use a future competition instead of past one
-    comp_name = "Summer Championship"  # This is in 2026
+    
+    comp_name = "Summer Championship"  
     club_name = server.clubs[0]["name"]
     response = client.get(f"/book/{comp_name}/{club_name}")
     assert response.status_code == 200
@@ -49,7 +49,7 @@ def test_points_persist_in_memory_after_booking(client):
     """Integration test: Points deduction persists in memory structures"""
     # Get initial values
     club_name = "Simply Lift"
-    comp_name = "Summer Championship"  # Use future competition
+    comp_name = "Summer Championship"  
     club = next(c for c in server.clubs if c["name"] == club_name)
     competition = next(c for c in server.competitions if c["name"] == comp_name)
     initial_points = int(club["points"])
@@ -61,7 +61,7 @@ def test_points_persist_in_memory_after_booking(client):
         "club": club_name,
         "places": "3",
     })
-    assert b"booking complete" in response.data.lower() or b"great - booking complete" in response.data.lower()
+    assert b"booking complete" in response.data.lower()
     
     # Check that points are deducted in the server's memory
     assert int(club["points"]) == initial_points - 3
@@ -76,7 +76,6 @@ def test_concurrent_bookings_maintain_consistency(client):
     """Test that multiple bookings from different clubs maintain data consistency"""
     club1 = server.clubs[0]
     club2 = server.clubs[1]
-    # Use future competition (Summer Championship is at index 2)
     competition = server.competitions[2]
     
     # Set up initial state
@@ -92,7 +91,7 @@ def test_concurrent_bookings_maintain_consistency(client):
         "club": club1["name"],
         "places": "3",
     })
-    assert b"booking complete" in response.data.lower() or b"great - booking complete" in response.data.lower()
+    assert b"booking complete" in response.data.lower()
     assert int(competition["numberOfPlaces"]) == initial_places - 3
     assert int(club1["points"]) == 7
     
@@ -102,7 +101,7 @@ def test_concurrent_bookings_maintain_consistency(client):
         "club": club2["name"],
         "places": "2",
     })
-    assert b"booking complete" in response.data.lower() or b"great - booking complete" in response.data.lower()
+    assert b"booking complete" in response.data.lower()
     assert int(competition["numberOfPlaces"]) == initial_places - 5
     assert int(club2["points"]) == 8
     assert int(club1["points"]) == 7  # First club's points unchanged
@@ -111,7 +110,7 @@ def test_concurrent_bookings_maintain_consistency(client):
 def test_booking_updates_reflected_in_scoreboard(client):
     """Test that point deductions are immediately visible in the scoreboard"""
     club = server.clubs[0]
-    # Use future competition (Summer Championship is at index 2)
+    
     competition = server.competitions[2]
     
     # Set known initial state
@@ -130,12 +129,11 @@ def test_booking_updates_reflected_in_scoreboard(client):
         "club": club_name,
         "places": "5",
     })
-    assert b"booking complete" in response.data.lower() or b"great - booking complete" in response.data.lower()
+    assert b"booking complete" in response.data.lower()
     
     # Check updated scoreboard
     response = client.get("/clubs")
     assert response.status_code == 200
-    # Club should now have 10 points (15 - 5)
     assert b"10" in response.data
 
 
