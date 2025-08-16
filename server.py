@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from flask import Flask,render_template,request,redirect,flash,url_for
 
 
@@ -41,17 +42,35 @@ def showSummary():
     if not club:
         flash('Unknown email address. Please try again.')
         return redirect(url_for('index'))
-    return render_template('welcome.html', club=club, competitions=competitions)
+    
+    # Add is_past flag to each competition
+    current_time = datetime.now()
+    competitions_with_status = []
+    for comp in competitions:
+        comp_copy = comp.copy()
+        comp_date = datetime.strptime(comp['date'], '%Y-%m-%d %H:%M:%S')
+        comp_copy['is_past'] = comp_date < current_time
+        competitions_with_status.append(comp_copy)
+    
+    return render_template('welcome.html', club=club, competitions=competitions_with_status)
 
 
 @app.route('/book/<competition>/<club>')
 def book(competition,club):
     foundClub = next((c for c in clubs if c['name'] == club), None)
     foundCompetition = next((c for c in competitions if c['name'] == competition), None)
-    if foundClub and foundCompetition:
-        return render_template('booking.html', club=foundClub, competition=foundCompetition)
-    flash("Something went wrong-please try again")
-    return redirect(url_for('index'))
+    
+    if not foundClub or not foundCompetition:
+        flash("Something went wrong-please try again")
+        return redirect(url_for('index'))
+    
+    # Check if competition date is in the past
+    competition_date = datetime.strptime(foundCompetition['date'], '%Y-%m-%d %H:%M:%S')
+    if competition_date < datetime.now():
+        flash("Cannot book places for past competitions")
+        return redirect(url_for('showSummary'), code=307)
+    
+    return render_template('booking.html', club=foundClub, competition=foundCompetition)
 
 
 @app.route('/purchasePlaces',methods=['POST'])
@@ -66,6 +85,20 @@ def purchasePlaces():
     if not competition or not club:
         flash('Invalid club or competition.')
         return redirect(url_for('index'))
+    
+    # Check if competition date is in the past
+    competition_date = datetime.strptime(competition['date'], '%Y-%m-%d %H:%M:%S')
+    current_time = datetime.now()
+    if competition_date < current_time:
+        flash("Cannot book places for past competitions")
+        # Add is_past flag to each competition
+        competitions_with_status = []
+        for comp in competitions:
+            comp_copy = comp.copy()
+            comp_date = datetime.strptime(comp['date'], '%Y-%m-%d %H:%M:%S')
+            comp_copy['is_past'] = comp_date < current_time
+            competitions_with_status.append(comp_copy)
+        return render_template('welcome.html', club=club, competitions=competitions_with_status)
 
     try:
         placesRequired = int(places_raw)
@@ -99,7 +132,17 @@ def purchasePlaces():
     saveCompetitions(competitions)
 
     flash(f'Great - booking complete! You booked {placesRequired} place(s).')
-    return render_template('welcome.html', club=club, competitions=competitions)
+    
+    # Add is_past flag to each competition
+    current_time = datetime.now()
+    competitions_with_status = []
+    for comp in competitions:
+        comp_copy = comp.copy()
+        comp_date = datetime.strptime(comp['date'], '%Y-%m-%d %H:%M:%S')
+        comp_copy['is_past'] = comp_date < current_time
+        competitions_with_status.append(comp_copy)
+    
+    return render_template('welcome.html', club=club, competitions=competitions_with_status)
 
 
 @app.route('/clubs')
