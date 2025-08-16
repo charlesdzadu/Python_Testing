@@ -1,14 +1,5 @@
-import json
 import pytest
 import server
-
-
-@pytest.fixture(autouse=True)
-def reset_data():
-    with open('clubs.json') as c:
-        server.clubs = json.load(c)['clubs']
-    with open('competitions.json') as comps:
-        server.competitions = json.load(comps)['competitions']
 
 
 @pytest.fixture()
@@ -52,5 +43,97 @@ def test_full_login_book_logout_flow(client):
     response = client.get("/logout", follow_redirects=True)
     assert response.status_code == 200
     assert b"GUDLFT Registration" in response.data
+
+
+def test_points_persist_in_memory_after_booking(client):
+    """Integration test: Points deduction persists in memory structures"""
+    # Get initial values
+    club_name = "Simply Lift"
+    comp_name = "Spring Festival"
+    club = next(c for c in server.clubs if c["name"] == club_name)
+    competition = next(c for c in server.competitions if c["name"] == comp_name)
+    initial_points = int(club["points"])
+    initial_places = int(competition["numberOfPlaces"])
+    
+    # Make a booking
+    response = client.post("/purchasePlaces", data={
+        "competition": comp_name,
+        "club": club_name,
+        "places": "3",
+    })
+    assert b"booking complete" in response.data.lower()
+    
+    # Check that points are deducted in the server's memory
+    assert int(club["points"]) == initial_points - 3
+    assert int(competition["numberOfPlaces"]) == initial_places - 3
+    
+    # Verify the changes are reflected in subsequent requests
+    response = client.get("/clubs")
+    assert str(initial_points - 3).encode() in response.data
+
+
+def test_concurrent_bookings_maintain_consistency(client):
+    """Test that multiple bookings from different clubs maintain data consistency"""
+    club1 = server.clubs[0]
+    club2 = server.clubs[1]
+    competition = server.competitions[0]
+    
+    # Set up initial state
+    club1["points"] = "10"
+    club2["points"] = "10"
+    competition["numberOfPlaces"] = "10"
+    
+    initial_places = 10
+    
+    # First club books
+    response = client.post("/purchasePlaces", data={
+        "competition": competition["name"],
+        "club": club1["name"],
+        "places": "3",
+    })
+    assert b"booking complete" in response.data.lower()
+    assert int(competition["numberOfPlaces"]) == initial_places - 3
+    assert int(club1["points"]) == 7
+    
+    # Second club books
+    response = client.post("/purchasePlaces", data={
+        "competition": competition["name"],
+        "club": club2["name"],
+        "places": "2",
+    })
+    assert b"booking complete" in response.data.lower()
+    assert int(competition["numberOfPlaces"]) == initial_places - 5
+    assert int(club2["points"]) == 8
+    assert int(club1["points"]) == 7  # First club's points unchanged
+
+
+def test_booking_updates_reflected_in_scoreboard(client):
+    """Test that point deductions are immediately visible in the scoreboard"""
+    club = server.clubs[0]
+    competition = server.competitions[0]
+    
+    # Set known initial state
+    club["points"] = "15"
+    competition["numberOfPlaces"] = "10"
+    club_name = club["name"]
+    
+    # Check initial scoreboard
+    response = client.get("/clubs")
+    assert response.status_code == 200
+    assert b"15" in response.data
+    
+    # Make a booking
+    response = client.post("/purchasePlaces", data={
+        "competition": competition["name"],
+        "club": club_name,
+        "places": "5",
+    })
+    assert b"booking complete" in response.data.lower()
+    
+    # Check updated scoreboard
+    response = client.get("/clubs")
+    assert response.status_code == 200
+    # Club should now have 10 points (15 - 5)
+    assert b"10" in response.data
 
 

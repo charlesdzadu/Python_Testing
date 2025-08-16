@@ -1,14 +1,5 @@
-import json
 import pytest
 import server
-
-
-@pytest.fixture(autouse=True)
-def reset_data():
-    with open('clubs.json') as c:
-        server.clubs = json.load(c)['clubs']
-    with open('competitions.json') as comps:
-        server.competitions = json.load(comps)['competitions']
 
 
 @pytest.fixture()
@@ -161,5 +152,70 @@ def test_login_link_to_scoreboard_present(client):
     response = client.get("/")
     assert response.status_code == 200
     assert b"Club Points" in response.data
+
+
+def test_points_deduction_persists_to_json(client, mock_save_functions):
+    """Test that points deduction triggers save functions"""
+    mock_save_clubs, mock_save_comps = mock_save_functions
+    
+    club = server.clubs[0]
+    competition = server.competitions[0]
+    initial_points = int(club["points"])
+    initial_places = int(competition["numberOfPlaces"])
+    
+    # Make a valid booking
+    response = client.post("/purchasePlaces", data={
+        "competition": competition["name"],
+        "club": club["name"],
+        "places": "2",
+    })
+    assert b"booking complete" in response.data.lower()
+    
+    # Verify in-memory changes
+    assert int(club["points"]) == initial_points - 2
+    assert int(competition["numberOfPlaces"]) == initial_places - 2
+    
+    # Verify save functions were called
+    mock_save_clubs.assert_called_once()
+    mock_save_comps.assert_called_once()
+
+
+def test_multiple_bookings_accumulate_deductions(client):
+    """Test that multiple bookings properly accumulate point deductions"""
+    club = server.clubs[0]
+    competition = server.competitions[0]
+    
+    # Ensure sufficient points and places
+    club["points"] = "20"
+    competition["numberOfPlaces"] = "20"
+    
+    initial_points = 20
+    
+    # First booking
+    response = client.post("/purchasePlaces", data={
+        "competition": competition["name"],
+        "club": club["name"],
+        "places": "3",
+    })
+    assert b"booking complete" in response.data.lower()
+    assert int(club["points"]) == initial_points - 3
+    
+    # Second booking
+    response = client.post("/purchasePlaces", data={
+        "competition": competition["name"],
+        "club": club["name"],
+        "places": "2",
+    })
+    assert b"booking complete" in response.data.lower()
+    assert int(club["points"]) == initial_points - 5
+    
+    # Third booking
+    response = client.post("/purchasePlaces", data={
+        "competition": competition["name"],
+        "club": club["name"],
+        "places": "1",
+    })
+    assert b"booking complete" in response.data.lower()
+    assert int(club["points"]) == initial_points - 6
 
 
