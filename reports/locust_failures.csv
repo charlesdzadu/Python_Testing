@@ -1,1 +1,6 @@
 Method,Name,Error,Occurrences
+GET,GET /book/<comp>/<club>,"ConnectionRefusedError(61, 'Connection refused')",72
+GET,GET / (index),"ConnectionRefusedError(61, 'Connection refused')",145
+POST,POST /showSummary (login),"ConnectionRefusedError(61, 'Connection refused')",62
+GET,GET /clubs (scoreboard),"ConnectionRefusedError(61, 'Connection refused')",141
+POST,POST /purchasePlaces (book),"ConnectionRefusedError(61, 'Connection refused')",72

@@ -33,7 +33,8 @@ def test_show_summary_valid_email(client):
 
 def test_book_page_valid_route(client):
     club = server.clubs[0]["name"]
-    competition = server.competitions[0]["name"]
+    # Use the future competition (Summer Championship)
+    competition = server.competitions[2]["name"] if len(server.competitions) > 2 else server.competitions[0]["name"]
     response = client.get(f"/book/{competition}/{club}")
     assert response.status_code == 200
     assert competition.encode() in response.data
@@ -57,7 +58,8 @@ def test_purchase_invalid_competition_or_club(client):
 
 def test_purchase_invalid_places_value(client):
     club = server.clubs[0]["name"]
-    competition = server.competitions[0]["name"]
+    # Use the future competition
+    competition = "Summer Championship"
     response = client.post("/purchasePlaces", data={
         "competition": competition,
         "club": club,
@@ -68,7 +70,8 @@ def test_purchase_invalid_places_value(client):
 
 def test_purchase_non_positive_places(client):
     club = server.clubs[0]["name"]
-    competition = server.competitions[0]["name"]
+    # Use the future competition
+    competition = "Summer Championship"
     response = client.post("/purchasePlaces", data={
         "competition": competition,
         "club": club,
@@ -79,7 +82,8 @@ def test_purchase_non_positive_places(client):
 
 def test_purchase_more_than_twelve_rejected(client):
     club = server.clubs[0]["name"]
-    competition = server.competitions[0]["name"]
+    # Use the future competition
+    competition = "Summer Championship"
     response = client.post("/purchasePlaces", data={
         "competition": competition,
         "club": club,
@@ -90,7 +94,8 @@ def test_purchase_more_than_twelve_rejected(client):
 
 def test_purchase_more_than_available_rejected(client, monkeypatch):
     club = server.clubs[0]["name"]
-    competition = server.competitions[0]["name"]
+    # Use the future competition
+    competition = "Summer Championship"
 
     # Force low availability for deterministic behavior
     for comp in server.competitions:
@@ -108,7 +113,8 @@ def test_purchase_more_than_available_rejected(client, monkeypatch):
 def test_purchase_more_than_points_rejected(client):
     # Pick a club with very few points
     low_points_club = next(c for c in server.clubs if int(c["points"]) <= 4)
-    competition = server.competitions[0]["name"]
+    # Use the future competition
+    competition = "Summer Championship"
     response = client.post("/purchasePlaces", data={
         "competition": competition,
         "club": low_points_club["name"],
@@ -120,7 +126,8 @@ def test_purchase_more_than_points_rejected(client):
 def test_successful_booking_deducts_points_and_places(client):
     # Work on a fresh competition and club with known values
     club = server.clubs[0]
-    competition = server.competitions[0]
+    # Use the future competition
+    competition = next((c for c in server.competitions if c["name"] == "Summer Championship"), server.competitions[0])
 
     # Save original values
     original_points = int(club["points"])
@@ -159,7 +166,8 @@ def test_points_deduction_persists_to_json(client, mock_save_functions):
     mock_save_clubs, mock_save_comps = mock_save_functions
     
     club = server.clubs[0]
-    competition = server.competitions[0]
+    # Use the future competition
+    competition = next((c for c in server.competitions if c["name"] == "Summer Championship"), server.competitions[0])
     initial_points = int(club["points"])
     initial_places = int(competition["numberOfPlaces"])
     
@@ -180,10 +188,31 @@ def test_points_deduction_persists_to_json(client, mock_save_functions):
     mock_save_comps.assert_called_once()
 
 
+def test_cannot_book_past_competition(client):
+    """Test that booking a past competition is rejected"""
+    club = server.clubs[0]["name"]
+    # Use a past competition (Spring Festival from 2020)
+    past_competition = "Spring Festival"
+    
+    # Try to access booking page for past competition
+    response = client.get(f"/book/{past_competition}/{club}", follow_redirects=False)
+    assert response.status_code == 307  # Should redirect
+    
+    # Try to book directly via POST
+    response = client.post("/purchasePlaces", data={
+        "competition": past_competition,
+        "club": club,
+        "places": "1",
+    })
+    assert b"Cannot book places for past competitions" in response.data
+    assert b"(Past competition - booking closed)" in response.data
+
+
 def test_multiple_bookings_accumulate_deductions(client):
     """Test that multiple bookings properly accumulate point deductions"""
     club = server.clubs[0]
-    competition = server.competitions[0]
+    # Use the future competition
+    competition = next((c for c in server.competitions if c["name"] == "Summer Championship"), server.competitions[0])
     
     # Ensure sufficient points and places
     club["points"] = "20"
