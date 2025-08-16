@@ -1,4 +1,3 @@
-
 {
     "competitions": [
         {
@@ -8,13 +7,13 @@
         },
         {
             "name": "Fall Classic",
-            "date": "2020-10-22 13:30:00",
-            "numberOfPlaces": "13"
+            "date": "2027-10-22 13:30:00",
+            "numberOfPlaces": "11"
         },
         {
             "name": "Summer Championship",
             "date": "2026-07-15 14:00:00",
-            "numberOfPlaces": "20"
+            "numberOfPlaces": "10"
         }
     ]
 }
