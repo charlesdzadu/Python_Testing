@@ -6,12 +6,52 @@
 </head>
 <body>
     <h2>{{competition['name']}}</h2>
-    Places available: {{competition['numberOfPlaces']}}
+    <p>Places available: {{competition['numberOfPlaces']}}</p>
+    <p>Your club points: {{club['points']}}</p>
+    {% with messages = get_flashed_messages()%}
+    {% if messages %}
+        <ul>
+        {% for message in messages %}
+            <li>{{message}}</li>
+        {% endfor %}
+        </ul>
+    {% endif%}
+    {%endwith%}
+    {% set max_bookable = [12, competition['numberOfPlaces']|int, club['points']|int]|min %}
     <form action="/purchasePlaces" method="post">
         <input type="hidden" name="club" value="{{club['name']}}">
         <input type="hidden" name="competition" value="{{competition['name']}}">
-        <label for="places">How many places?</label><input type="number" name="places" id=""/>
+        <label for="places">How many places?</label>
+        <input type="number" name="places" id="places" min="1" max="{{ max_bookable }}" required />
         <button type="submit">Book</button>
     </form>
+    <p id="validation-message" style="color: red; display: none;"></p>
+    
+    <script>
+        const maxBookable = {{ max_bookable }};
+        const clubPoints = {{ club['points'] }};
+        const competitionPlaces = {{ competition['numberOfPlaces'] }};
+        const placesInput = document.getElementById('places');
+        const validationMessage = document.getElementById('validation-message');
+        
+        placesInput.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            validationMessage.style.display = 'none';
+            
+            if (value > clubPoints) {
+                validationMessage.textContent = `You only have ${clubPoints} points available.`;
+                validationMessage.style.display = 'block';
+                this.value = clubPoints;
+            } else if (value > competitionPlaces) {
+                validationMessage.textContent = `Only ${competitionPlaces} places available in this competition.`;
+                validationMessage.style.display = 'block';
+                this.value = competitionPlaces;
+            } else if (value > 12) {
+                validationMessage.textContent = 'Maximum 12 places per booking.';
+                validationMessage.style.display = 'block';
+                this.value = 12;
+            }
+        });
+    </script>
 </body>
 </html>
